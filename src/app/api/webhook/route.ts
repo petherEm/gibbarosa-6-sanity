@@ -5,55 +5,56 @@ import { NextRequest, NextResponse } from "next/server";
 import { Stripe } from "stripe";
 import { Metadata } from "../../../../actions/createCheckoutSession";
 
-
-
 export async function POST(req: NextRequest) {
-    const body = await req.text();
-    const headersList = await headers();
-    const sig = headersList.get('stripe-signature');
-
-
-    if (!sig) {
-        return NextResponse.json({ error: 'No signature' }, { status: 400 });
-    }
-
-    const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET!;
-
-    if(!webhookSecret) {
-        console.log("No webhook secret");
-        return NextResponse.json({ error: 'No webhook secret' }, { status: 400 });
-    }
-
-    let event: Stripe.Event;
+    const isProduction = process.env.NODE_ENV === 'production';
+    console.log(`🌍 Environment: ${process.env.NODE_ENV}`);
 
     try {
+        const body = await req.text();
+        const sig = headers().get('stripe-signature');
+        console.log('📡 Webhook called with signature:', !!sig);
 
-        event = stripe.webhooks.constructEvent(body, sig, webhookSecret);
-    } catch (error) {
-        console.log(error);
-        return NextResponse.json({ error: `Webhook Error: ${error }` }, { status: 400 });
-    }
-
-
-    if (event.type === 'checkout.session.completed') {
-        const session = event.data.object as Stripe.Checkout.Session;
-
-        try {
-            const order = await createOrderInSanity(session);
-            console.log("Order created in Sanity", order);
-        } catch (error) {
-            console.log("Error creating order in Sanity", error);
-            return NextResponse.json({ error: 'Error creating order in Sanity' }, { status: 400 });
+        if (!sig) {
+            throw new Error('No signature found');
         }
+
+        const event = stripe.webhooks.constructEvent(
+            body,
+            sig,
+            process.env.STRIPE_WEBHOOK_SECRET!
+        );
+
+        console.log(`📦 Processing ${event.type} event`);
+
+        switch (event.type) {
+            case 'checkout.session.completed':
+                const session = event.data.object as Stripe.Checkout.Session;
+                console.log('💳 Processing completed checkout:', session.id);
+                const order = await createOrderInSanity(session);
+                console.log('✅ Created Sanity order:', order._id);
+                break;
+
+            case 'payment_intent.succeeded':
+                const paymentIntent = event.data.object as Stripe.PaymentIntent;
+                console.log('💰 Payment succeeded:', paymentIntent.id);
+                break;
+
+            default:
+                console.log(`⚠️ Unhandled event: ${event.type}`);
+        }
+
+        return NextResponse.json(
+            { received: true, environment: process.env.NODE_ENV },
+            { status: 200 }
+        );
+    } catch (err: any) {
+        console.error('🔴 Webhook error:', err.message);
+        return NextResponse.json(
+            { error: err.message },
+            { status: 400 }
+        );
     }
-
-
-    return NextResponse.json({ received: true });
-
-
-
 }
-
 
 async function createOrderInSanity(session: Stripe.Checkout.Session) {
     const {
