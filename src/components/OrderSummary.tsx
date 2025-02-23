@@ -1,18 +1,31 @@
 "use client";
 
+import { Button } from "@/components/ui/button";
 import useCartStore from "@/store/store";
 import Image from "next/image";
 import { urlFor } from "@/sanity/lib/image";
 import { Separator } from "./ui/separator";
 import { CartItem } from "@/store/store"; // Ensure you have this type defined
+import StripeProvider from "./StripeProvider";
+import PaymentForm from "./PaymentForm";
 
-const OrderSummary = () => {
+interface OrderSummaryProps {
+  clientSecret: string | null;
+  shippingData: any | null;
+  shippingMethod: string | null;
+}
+
+const OrderSummary = ({
+  clientSecret,
+  shippingData,
+  shippingMethod,
+}: OrderSummaryProps) => {
   const cartItems = useCartStore((state) => state.items);
   const subtotal = cartItems.reduce(
     (total, item) => total + item.product.eurprice! * item.quantity,
     0
   );
-  const shippingCost = 15; // You might want to make this dynamic
+  const shippingCost = shippingMethod === "INPOST" ? 10 : 15;
   const total = subtotal + shippingCost;
 
   return (
@@ -25,10 +38,8 @@ const OrderSummary = () => {
           <div key={item.product._id} className="flex gap-4">
             <div className="relative h-20 w-20 flex-shrink-0 overflow-hidden rounded-md">
               <Image
-                src={
-                  urlFor(item.product.images?.[0]).url() || "/placeholder.png"
-                }
-                alt={item.product.name}
+                src={urlFor(item.product.images[0]).url() || "/placeholder.png"}
+                alt={item.product.name!}
                 fill
                 className="object-cover"
               />
@@ -36,7 +47,7 @@ const OrderSummary = () => {
             <div className="flex flex-1 flex-col justify-between">
               <div className="flex justify-between">
                 <div>
-                  <h3 className="text-sm font-medium">{item.name}</h3>
+                  <h3 className="text-sm font-medium">{item.product.name}</h3>
                   <p className="mt-1 text-sm text-muted-foreground">
                     Quantity: {item.quantity}
                   </p>
@@ -59,7 +70,7 @@ const OrderSummary = () => {
           <p>€{subtotal.toFixed(2)}</p>
         </div>
         <div className="flex justify-between text-sm">
-          <p>Shipping</p>
+          <p>Shipping ({shippingMethod || "DHL"})</p>
           <p>€{shippingCost.toFixed(2)}</p>
         </div>
         <Separator />
@@ -67,6 +78,26 @@ const OrderSummary = () => {
           <p>Total</p>
           <p>€{total.toFixed(2)}</p>
         </div>
+      </div>
+
+      {/* Payment Section */}
+      <div className="mt-8">
+        <Separator className="my-8" />
+        <h2 className="text-lg font-semibold mb-4">Payment</h2>
+        {clientSecret && shippingData ? (
+          <StripeProvider clientSecret={clientSecret}>
+            <PaymentForm
+              shippingDetails={shippingData}
+              onPaymentComplete={() => {
+                // Handle payment completion
+              }}
+            />
+          </StripeProvider>
+        ) : (
+          <div className="text-sm text-muted-foreground">
+            Please complete shipping details to proceed with payment.
+          </div>
+        )}
       </div>
     </div>
   );

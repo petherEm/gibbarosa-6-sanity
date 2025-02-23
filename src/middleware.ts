@@ -8,7 +8,7 @@ export const locales = ["pl", "en", "fr"]
 export const defaultLocale = "pl"
 
 // Paths that don't require locale prefix
-const PUBLIC_PATHS = ["/studio", "/draft-mode"]
+const PUBLIC_PATHS = ["/studio", "/draft-mode", "/api/webhook"]
 
 // Get the preferred locale from the request headers
 function getLocale(request: NextRequest) {
@@ -27,6 +27,7 @@ export const middleware = (request: NextRequest) => {
   // Skip internal Next.js paths and public paths
   if (
     pathname.startsWith("/_next/") ||
+    pathname.startsWith("/api/webhook") || // Explicitly exclude webhook
     pathname.includes("/api/") ||
     pathname.startsWith("/static/") ||
     pathname.includes(".") || // Skip files with extensions
@@ -54,6 +55,6 @@ export const runtime = "experimental-edge"
 export const matcher = [
   // Match all paths except:
   // /_next/, /api/, /static/, /studio/, and files with extensions
-  "/((?!_next|api|static|studio|.*\\.[^/]*$).*)",
+  "/((?!_next|api/webhook|api|static|studio|.*\\.[^/]*$).*)",
 ]
 

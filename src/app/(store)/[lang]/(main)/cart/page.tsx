@@ -1,22 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Image from "next/image";
-// import AddToCartButton from "@/components/AddToCartButton";
-import { urlFor } from "@/sanity/lib/image";
-import useCartStore from "@/store/store";
 import { useRouter } from "next/navigation";
-import Loader from "@/components/Loader";
-// import {
-//   createCheckoutSession,
-//   Metadata,
-// } from "../../../../../../actions/createCheckoutSession";
-import RemoveFromCartButton from "@/components/RemoveFromCartButton";
+import { AnimatePresence, motion } from "framer-motion";
+import useCartStore from "@/store/store";
+import { CartItem } from "@/components/cart/cart-item";
+import { CartSummary } from "@/components/cart/cart-summary";
+import { EmptyCart } from "@/components/cart/empty-cart";
+import { Skeleton } from "@/components/ui/skeleton";
 
-const CartPage = () => {
+export default function CartPage() {
   const groupedItems = useCartStore((state) => state.getGroupedItems());
   const router = useRouter();
-
   const [isClient, setIsClient] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -25,124 +20,75 @@ const CartPage = () => {
   }, []);
 
   if (!isClient) {
-    return <Loader />;
-  }
-
-  console.log("Store cart", groupedItems);
-
-  if (groupedItems.length === 0) {
     return (
-      <div className="container mx-auto p-4 flex flex-col items-center justify-center min-h-[50vh]">
-        <h1 className="text-2xl font-bold mb-6 text-gray-800">Your Cart</h1>
-        <p className="text-gray-600 text-lg">Your cart is empty</p>
+      <div className="container mx-auto p-4 max-w-6xl">
+        <div className="space-y-4">
+          <Skeleton className="h-8 w-48" />
+          <div className="flex flex-col lg:flex-row gap-8">
+            <div className="flex-grow space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-32 w-full" />
+              ))}
+            </div>
+            <Skeleton className="h-64 w-full lg:w-80" />
+          </div>
+        </div>
       </div>
     );
   }
 
-  // const handleCheckout = async () => {
-  //   setIsLoading(true);
+  if (groupedItems.length === 0) {
+    return <EmptyCart />;
+  }
 
-  //   try {
-  //     const metadata: Metadata = {
-  //       orderNumber: crypto.randomUUID(),
-  //       customerName: "John Doe",
-  //       customerEmail: "john@email.com",
-  //       customerPhone: "1212121212",
-  //       shippingAddress: "Rue 2121",
-  //       shippingCity: "Paris",
-  //       shippingZip: "092121",
-  //       shippingCountry: "France",
-  //     };
+  const handleCheckout = async () => {
+    setIsLoading(true);
+    try {
+      router.push("/checkout");
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-  //     const checkoutUrl = await createCheckoutSession(groupedItems, metadata);
-
-  //     if (checkoutUrl) {
-  //       window.location.href = checkoutUrl;
-  //     }
-  //   } catch (error) {
-  //     console.error(error);
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
+  const itemCount = groupedItems.reduce(
+    (total, item) => total + item.quantity,
+    0
+  );
 
   return (
     <div className="container mx-auto p-4 max-w-6xl">
-      <h1 className="text-2xl font-bold mb-4">Your Cart</h1>
+      <motion.h1
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="text-3xl font-bold mb-8"
+      >
+        Shopping Cart
+      </motion.h1>
+
       <div className="flex flex-col lg:flex-row gap-8">
-        <div className="flex-grow">
-          {groupedItems.map((item) => (
-            <div
-              key={item.product._id}
-              className="mb-4 p-4 border rounded flex items-center justify-between"
-            >
-              <div
-                className="flex items-center cursor-pointer flex-1 min-w-0"
-                onClick={() =>
-                  router.push(`/product/${item.product.slug?.current}`)
-                }
-              >
-                <div className="">
-                  {item.product.images && (
-                    <Image
-                      src={urlFor(item.product.images[0]).url()}
-                      alt={item.product.name ?? "Product Image"}
-                      className="object-contain"
-                      width={96}
-                      height={96}
-                    />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <h2 className="text-lg sm:text-xl font-semibold truncate">
-                    {item.product.name}
-                  </h2>
-                  <p>
-                    EUR{" "}
-                    {((item.product.eurprice ?? 0) * item.quantity).toFixed(2)}
-                  </p>
-                </div>
-              </div>
+        <motion.div layout className="flex-grow">
+          <AnimatePresence mode="popLayout">
+            {groupedItems.map((item) => (
+              <CartItem
+                key={item.product._id}
+                product={item.product}
+                quantity={item.quantity}
+              />
+            ))}
+          </AnimatePresence>
+        </motion.div>
 
-              <div>{item.product.name}</div>
-              <div className="flex items-center ml-4 flex-shrink-0">
-                <RemoveFromCartButton product={item.product} />
-              </div>
-            </div>
-          ))}
-        </div>
-
-        <div className="w-full lg:w-80 lg:sticky lg:top-4 h-fit bg-white p-6 border rounded order-first lg:order-last fixed bottom-0 left-0 lg:left-auto">
-          <h3 className="text-xl font-semibold">Order Summary</h3>
-
-          <div>
-            <p>
-              <span>Items:</span>
-              <span>
-                {groupedItems.reduce((total, item) => total + item.quantity, 0)}
-              </span>
-            </p>
-            <p className="flex justify-between text-2xl font-bold border-t pt-2">
-              <span>Total:</span>
-              <span>
-                $ {useCartStore.getState().getTotalPrice().toFixed(2)}
-              </span>
-            </p>
-          </div>
-
-          <button
-            onClick={() => router.push("/checkout")}
-            disabled={isLoading}
-            className="mt-4 w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 disabled:bg-gray-400"
-          >
-            {isLoading ? "Processing..." : "Checkout"}
-          </button>
-        </div>
-
-        <div className="h-64 lg:h-0"></div>
+        <CartSummary
+          isLoading={isLoading}
+          onCheckout={handleCheckout}
+          itemCount={itemCount}
+        />
       </div>
+
+      {/* Spacer for mobile layout */}
+      <div className="h-32 lg:h-0" />
     </div>
   );
-};
-
-export default CartPage;
+}

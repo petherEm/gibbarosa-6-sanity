@@ -10,6 +10,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import Link from "next/link";
+import LanguageSwitcher from "../LanguageSwitcher";
 
 interface MobileMenuProps {
   isOpen: boolean;
@@ -65,6 +66,9 @@ export default function MobileMenu({
           <Link href={`${prefix}/brands`} className="text-sm">
             {dict.navbar.brands}
           </Link>
+          <div className="pt-4 mt-4 border-t">
+            <LanguageSwitcher />
+          </div>
         </nav>
       </SheetContent>
     </Sheet>

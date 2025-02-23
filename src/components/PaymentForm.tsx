@@ -10,9 +10,24 @@ import { Button } from "@/components/ui/button";
 
 interface PaymentFormProps {
   onPaymentComplete?: () => void;
+  shippingDetails: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    address: string;
+    apartment?: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    country: string;
+    phone: string;
+  };
 }
 
-export default function PaymentForm({ onPaymentComplete }: PaymentFormProps) {
+export default function PaymentForm({
+  onPaymentComplete,
+  shippingDetails,
+}: PaymentFormProps) {
   const stripe = useStripe();
   const elements = useElements();
   const [isProcessing, setIsProcessing] = useState(false);
@@ -32,7 +47,23 @@ export default function PaymentForm({ onPaymentComplete }: PaymentFormProps) {
       const { error } = await stripe.confirmPayment({
         elements,
         confirmParams: {
-          return_url: `${window.location.origin}/order-confirmation`,
+          return_url: `${window.location.origin}/order`,
+          payment_method_data: {
+            billing_details: {
+              name: `${shippingDetails.firstName} ${shippingDetails.lastName}`,
+              email: shippingDetails.email,
+              phone: shippingDetails.phone,
+              address: {
+                line1: shippingDetails.address,
+                line2: shippingDetails.apartment || undefined,
+                city: shippingDetails.city,
+                state: shippingDetails.state,
+                postal_code: shippingDetails.postalCode,
+                country: shippingDetails.country,
+              },
+            },
+          },
+          // Remove shipping information here as it's already set in the PaymentIntent
         },
       });
 
