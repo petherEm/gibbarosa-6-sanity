@@ -19,7 +19,7 @@ import { ShieldCheckIcon, Box, RefreshCcw } from "lucide-react";
 import BuyNowButton from "@/components/BuyNowButton";
 
 export const dynamic = "force-static";
-export const revalidate = 60 * 60; // 1 hour
+export const revalidate = 3600; // 1 hour
 
 const getDescriptionByLang = (product: any, lang: string) => {
   switch (lang) {
