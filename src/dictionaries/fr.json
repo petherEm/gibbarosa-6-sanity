@@ -1,0 +1,65 @@
+{
+    "navbar": {
+        "new": "Nouveautés",
+        "shop": "Boutique",
+        "collections": "Collections",
+        "about": "À propos",
+        "brands": "Marques"
+    },
+    "hero": {
+        "title": "Mode iconique de seconde main",
+        "subtitle": "Découvrez notre sélection exclusive de sacs, chaussures et accessoires exceptionnels, un véritable investissement.",
+        "button": "Explorez maintenant"
+    },
+    "midBanner": {
+        "title": "Sélection de collectionneurs",
+        "subtitle":"Découvrez notre sélection exclusive de sacs, chaussures et accessoires exceptionnels, un véritable investissement.",
+        "button": "Voir tout"
+    },
+    "productCarousel": {
+        "title": "Nouveautés",
+        "button": "Voir tout"
+    },
+    "ourStoryShort": {
+        "title": "Notre histoire",
+        "text_1": "Gibbarosa est née d’un amour pour l’histoire, le patrimoine et le savoir-faire des maisons de mode de luxe.",
+        "text_2": "Nous donnons une seconde vie aux pièces intemporelles, qui doivent être considérées comme de véritables investissements.",
+        "button": "Découvrez-nous"
+    },
+    "footer": {
+        "tagline": "Entourez-vous de produits beaux et intemporels.",
+        "disclaimer": "Tous les articles disponibles sur Gibbarosa sont d'occasion et utilisés. Aucun propriétaire de marque des produits disponibles sur Gibbarosa n'est associé ou ne sponsorise Gibbarosa. Les marques déposées sont la propriété de leurs propriétaires respectifs.",
+        "shop": {
+            "title": "Boutique",
+            "bags": "Sacs",
+            "shoes": "Chaussures",
+            "jewelry": "Bijoux",
+            "accessories": "Accessoires"
+        },
+        "orders": {
+            "title": "Commandes",
+            "shipping": "Livraison",
+            "returns": "Retours",
+            "complaints": "Réclamations",
+            "authenticity": "Authenticité",
+            "condition": "État"
+        },
+        "information": {
+            "title": "Informations",
+            "aboutUs": "À propos",
+            "photoSessions": "Location pour séances photo",
+            "affiliate": "Programme d'affiliation"
+        },
+        "contact": {
+            "title": "Contact",
+            "writeUs": "Écrivez-nous à:",
+            "email": "hello@gibbarosa.com"
+        },
+        "legal": {
+            "rights": "Tous droits réservés.",
+            "privacy": "Politique de confidentialité",
+            "terms": "Conditions d'utilisation",
+            "cookies": "Politique des cookies"
+        }
+    }
+}

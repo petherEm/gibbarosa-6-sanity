@@ -1,0 +1,66 @@
+{
+    "navbar": {
+        "new": "Nowości",
+        "shop": "Sklep",
+        "collections": "Kolekcje",
+        "about": "O nas",
+        "brands": "Marki"
+    },
+    "hero": {
+        "title": "Ikoniczna moda z drugiej ręki",
+        "subtitle": "Odkryj naszą selekcję wyjątkowych torebek, butów i akcesoriów wartych inwestycji.",
+        "button": "Sprawdź"
+    },
+    
+    "midBanner": {
+        "title": "Wybór kolekcjonerski",
+        "subtitle": "Nasze produkty są wyjątkowe, ponieważ każdy z nich ma swoją historię.",
+        "button": "Zobacz wszystkie"
+    },
+    "productCarousel": {
+        "title": "Nowości",
+        "button": "Zobacz wszystko"
+    },
+    "ourStoryShort": {
+        "title": "Nasza historia",
+        "text_1": "Gibbarosa powstała z miłości do historii, dziedzictwa i savoir-faire luksusowych domów mody.",
+        "text_2": "Dajemy drugie życie ponadczasowym produktom, które należy traktować jak prawdziwe inwestycje.",
+        "button": "Poznaj nas"
+    },
+    "footer": {
+        "tagline": "Otaczaj się pięknymi, ponadczasowymi produktami.",
+        "disclaimer": "Wszystkie przedmioty dostępne na Gibbarosa są z drugiego obiegu i używane. Żaden właściciel marek produktów dostępnych na Gibbarosa nie ma powiązania z Gibbarosa, ani nie sponsoruje reklam. Znaki towarowe marek są własnością odpowiednich właścicieli marek.",
+        "shop": {
+            "title": "Sklep",
+            "bags": "Torebki",
+            "shoes": "Buty",
+            "jewelry": "Biżuteria",
+            "accessories": "Akcesoria"
+        },
+        "orders": {
+            "title": "Zamówienia",
+            "shipping": "Wysyłka",
+            "returns": "Zwroty",
+            "complaints": "Reklamacje",
+            "authenticity": "Autentyczność",
+            "condition": "Ocena stanu"
+        },
+        "information": {
+            "title": "Informacje",
+            "aboutUs": "O nas",
+            "photoSessions": "Wynajem na sesje",
+            "affiliate": "Program afiliacyjny"
+        },
+        "contact": {
+            "title": "Kontakt",
+            "writeUs": "Napisz do nas na:",
+            "email": "hello@gibbarosa.com"
+        },
+        "legal": {
+            "rights": "Wszelkie prawa zastrzeżone.",
+            "privacy": "Polityka Prywatności",
+            "terms": "Regulamin",
+            "cookies": "Polityka Cookies"
+        }
+    }
+}

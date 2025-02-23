@@ -1,0 +1,65 @@
+{
+    "navbar": {
+        "new": "New in",
+        "shop": "Shop",
+        "collections": "Collections",
+        "about": "About us",
+        "brands": "Brands"
+    },
+    "hero": {
+        "title": "Iconic pre-loved fashion",
+        "subtitle": "Explore our curated collection of exceptional bags, shoes, and accessories that are worth investing in.",
+        "button": "Shop now"
+    },
+    "midBanner": {
+        "title": "Collector's selection",
+        "subtitle": "Our products are unique because each of them has its own story.",
+        "button": "See All"
+    },
+    "productCarousel": {
+        "title": "New In",
+        "button": "See All"
+    },
+    "ourStoryShort": {
+        "title": "Our Story",
+        "text_1": "Gibbarosa was born out of a love for history, heritage, and the savoir-faire of luxury fashion houses.",
+        "text_2": "We give a second life to timeless pieces that should be treated as true investments.",
+        "button": "Get to know us"
+    },
+    "footer": {
+        "tagline": "Surround yourself with beautiful, timeless products.",
+        "disclaimer": "All items available on Gibbarosa are second-hand and used. No brand owner of products available on Gibbarosa is associated with or sponsors Gibbarosa. Brand trademarks are the property of their respective brand owners.",
+        "shop": {
+            "title": "Shop",
+            "bags": "Bags",
+            "shoes": "Shoes",
+            "jewelry": "Jewelry",
+            "accessories": "Accessories"
+        },
+        "orders": {
+            "title": "Orders",
+            "shipping": "Shipping",
+            "returns": "Returns",
+            "complaints": "Complaints",
+            "authenticity": "Authenticity",
+            "condition": "Condition Rating"
+        },
+        "information": {
+            "title": "Information",
+            "aboutUs": "About Us",
+            "photoSessions": "Rent for Photo Sessions",
+            "affiliate": "Affiliate Program"
+        },
+        "contact": {
+            "title": "Contact",
+            "writeUs": "Write to us at:",
+            "email": "hello@gibbarosa.com"
+        },
+        "legal": {
+            "rights": "All rights reserved.",
+            "privacy": "Privacy Policy",
+            "terms": "Terms of Service",
+            "cookies": "Cookie Policy"
+        }
+    }
+}
