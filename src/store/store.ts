@@ -12,7 +12,6 @@ interface CartStore {
     items: CartItem[];
     addItem: (product: Product, quantity: number) => void;
     removeItem: (productId: string) => void;
-    updateItemQuantity: (productId: string, quantity: number) => void;
     clearCart: () => void;
     getTotalPrice: (lang?: string) => number;
     isProductInCart: (productId: string) => boolean;
@@ -23,65 +22,29 @@ const useCartStore = create<CartStore>()(
         (set, get) => ({
             items: [],
             addItem: (product, quantity) => {
-                // Console log to debug
-                console.log("Adding to cart:", {
-                    product: {
-                        _id: product._id,
-                        name: product.name,
-                        pricing: product.pricing
-                    },
-                    quantity
-                });
-
-                // Ensure quantity is a number
-                const safeQuantity = Number(quantity) || 1;
-
+                // Since we only allow one of each product, first check if it exists
                 const currentItems = get().items;
-                const existingItemIndex = currentItems.findIndex(
+                const existingItem = currentItems.find(
                     (item) => item.product._id === product._id
                 );
 
-                if (existingItemIndex >= 0) {
-                    // If item exists, update quantity
-                    const updatedItems = [...currentItems];
-                    const existingItem = updatedItems[existingItemIndex];
-                    const newQuantity = Number(existingItem.quantity) + safeQuantity;
-
-                    updatedItems[existingItemIndex] = {
-                        ...existingItem,
-                        quantity: newQuantity
-                    };
-
-                    set({ items: updatedItems });
-                    console.log("Updated existing item, new quantity:", newQuantity);
-                } else {
-                    // If item doesn't exist, add it
-                    set({
-                        items: [...currentItems, {
-                            product,
-                            quantity: safeQuantity
-                        }]
-                    });
-                    console.log("Added new item with quantity:", safeQuantity);
+                if (existingItem) {
+                    console.log("Product already in cart:", product._id);
+                    return;
                 }
+
+                // If item doesn't exist, add it with quantity 1
+                set({
+                    items: [...currentItems, {
+                        product,
+                        quantity: 1 // Always set to 1 since we only have one of each product
+                    }]
+                });
+                console.log("Added new item to cart:", product._id);
             },
             removeItem: (productId) => {
-                console.log("Removing item:", productId);
                 set({
                     items: get().items.filter((item) => item.product._id !== productId),
-                });
-            },
-            updateItemQuantity: (productId, quantity) => {
-                // Ensure quantity is a number
-                const safeQuantity = Number(quantity) || 1;
-                console.log("Updating quantity for:", productId, "to:", safeQuantity);
-
-                set({
-                    items: get().items.map((item) =>
-                        item.product._id === productId
-                            ? { ...item, quantity: safeQuantity }
-                            : item
-                    ),
                 });
             },
             clearCart: () => {
@@ -89,34 +52,19 @@ const useCartStore = create<CartStore>()(
                 set({ items: [] });
             },
             getTotalPrice: (lang = "en") => {
-                const total = get().items.reduce((sum, item) => {
+                return get().items.reduce((sum, item) => {
                     // Ensure we have valid pricing data
                     if (!item.product || !item.product.pricing) {
-                        console.warn("Product or pricing missing:", item.product);
                         return sum;
                     }
 
-                    // Debug the price calculation
+                    // Calculate price based on language
                     const priceField = lang === "pl" ? "PLN" : "EUR";
-                    const rawPrice = item.product.pricing[priceField];
-                    const price = Number(rawPrice) || 0;
-                    const quantity = Number(item.quantity) || 0;
-                    const itemTotal = price * quantity;
+                    const price = Number(item.product.pricing[priceField] || 0);
 
-                    console.log("Price calculation:", {
-                        product: item.product._id,
-                        priceField,
-                        rawPrice,
-                        price,
-                        quantity,
-                        itemTotal
-                    });
-
-                    return sum + itemTotal;
+                    // Quantity is always 1 in our case
+                    return sum + price;
                 }, 0);
-
-                console.log(`Total price (${lang}):`, total);
-                return total;
             },
             isProductInCart: (productId) => {
                 return get().items.some((item) => item.product._id === productId);

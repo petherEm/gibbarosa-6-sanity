@@ -147,17 +147,18 @@ export const productType = defineType({
     }),
     
     defineField({
-      name: "stock",
-      title: "Stock",
-      type: "number",
-      validation: (Rule) => Rule.min(0),
-      fieldset: "basicInfo",
-    }),
-    
-    defineField({
       name: "isFeatured",
       title: "Is Featured",
       type: "boolean",
+      fieldset: "basicInfo",
+    }),
+
+    defineField({
+      name: "inStock",
+      title: "In Stock",
+      type: "boolean",
+      initialValue: true,
+      description: "Is this product available for purchase?",
       fieldset: "basicInfo",
     }),
     

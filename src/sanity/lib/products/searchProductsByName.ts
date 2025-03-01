@@ -13,7 +13,7 @@ export const searchProductsByName = async (searchParams: string) => {
         pricing,
         slug,
         images,
-        stock,
+        inStock,
         isFeatured,
         "brands": brands[]-> {
             _id,

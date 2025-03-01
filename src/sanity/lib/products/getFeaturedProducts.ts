@@ -8,7 +8,7 @@ export const getFeaturedProducts = async () => {
         name,
         pricing,
         images,
-        stock,
+        inStock,
         isFeatured,
         "brands": brands[]-> {
             _id,

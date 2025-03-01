@@ -38,7 +38,7 @@ const getBrandName = (product, lang) => {
 };
 
 const ProductThumb = ({ product, lang }) => {
-  const isOutOfStock = product.stock != null && product.stock <= 0;
+  const isOutOfStock = product.inStock === false;
   const [isHovered, setIsHovered] = useState(false);
   const productName = getNameByLang(product, lang);
   const { price, currency } = getPriceByLang(product, lang);

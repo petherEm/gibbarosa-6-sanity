@@ -9,7 +9,7 @@ export const getProductsByCategory = async (categorySlug: string) => {
       pricing,
       slug,
       images,
-      stock,
+      inStock,
       isFeatured,
       "brands": brands[]-> {
         _id,

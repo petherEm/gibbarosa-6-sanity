@@ -119,14 +119,24 @@ async function createOrderFromCheckoutSession(session: Stripe.Checkout.Session) 
 async function createOrderFromPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
     console.log('Creating order from payment intent:', paymentIntent.id);
     
+    // Check if an order with this payment intent already exists
+    const existingOrder = await backendClient.fetch(
+        `*[_type == "order" && stripePaymentIntentId == $piId][0]`, 
+        { piId: paymentIntent.id }
+    );
+    
+    if (existingOrder) {
+        console.log(`Order already exists for payment intent ${paymentIntent.id}`);
+        return existingOrder;
+    }
+    
     // Extract order items from metadata
     let orderItems = [];
     try {
-        // Parse the order items from metadata
         const itemsJson = paymentIntent.metadata.orderItems;
         if (itemsJson) {
             const parsedItems = JSON.parse(itemsJson);
-            orderItems = parsedItems.map((item: any) => ({
+            orderItems = parsedItems.map((item) => ({
                 _key: crypto.randomUUID(),
                 product: {
                     _type: "reference",
@@ -139,38 +149,69 @@ async function createOrderFromPaymentIntent(paymentIntent: Stripe.PaymentIntent)
         console.error('Error parsing order items:', error);
     }
     
-    // Extract shipping information
-    const shippingInfo = paymentIntent.shipping;
-    
-    // Generate a unique order number if not provided
-    const orderNumber = paymentIntent.metadata.orderNumber || `PI-${Date.now()}-${paymentIntent.id.slice(-4)}`;
-    
-    // Create the order in Sanity
+    // Create the order in Sanity with all required fields
     const order = await backendClient.create({
         _type: "order",
-        orderNumber,
+        orderNumber: paymentIntent.metadata.orderNumber || `PI-${Date.now()}-${paymentIntent.id.slice(-4)}`,
         stripePaymentIntentId: paymentIntent.id,
         stripeCustomerId: paymentIntent.customer?.toString() || undefined,
         customerName: paymentIntent.metadata.firstName && paymentIntent.metadata.lastName ? 
             `${paymentIntent.metadata.firstName} ${paymentIntent.metadata.lastName}` : 
-            (shippingInfo ? shippingInfo.name : 'Unknown'),
+            (paymentIntent.shipping ? paymentIntent.shipping.name : 'Unknown'),
         email: paymentIntent.metadata.email || 'unknown@example.com',
         products: orderItems,
         currency: paymentIntent.currency,
-        amountDiscount: 0, // No discount info in PaymentIntent
-        totalPrice: paymentIntent.amount / 100, // Convert from cents
+        totalPrice: paymentIntent.amount / 100,
         status: "paid",
         orderDate: new Date().toISOString(),
-        shippingAddress: shippingInfo ? {
-            address: shippingInfo.address.line1,
-            apartment: shippingInfo.address.line2 || undefined,
-            city: shippingInfo.address.city,
-            state: shippingInfo.address.state,
-            postalCode: shippingInfo.address.postal_code,
-            country: shippingInfo.address.country,
-            phone: shippingInfo.phone || undefined
+        shippingMethod: paymentIntent.metadata.shippingMethod || 'standard',
+        notes: paymentIntent.metadata.notes || undefined,
+        shippingAddress: paymentIntent.shipping ? {
+            address: paymentIntent.shipping.address.line1,
+            apartment: paymentIntent.shipping.address.line2 || undefined,
+            city: paymentIntent.shipping.address.city,
+            state: paymentIntent.shipping.address.state,
+            postalCode: paymentIntent.shipping.address.postal_code,
+            country: paymentIntent.shipping.address.country,
+            phone: paymentIntent.shipping.phone || undefined
         } : undefined
     });
 
+    // Now update inventory for each product
+    await updateInventory(orderItems);
+    
+    console.log(`Created order ${order._id} with payment intent ${paymentIntent.id}`);
     return order;
+}
+
+// Helper function to update inventory
+async function updateInventory(orderItems) {
+    try {
+        console.log('Updating inventory for ordered items');
+        
+        // Process each product in the order
+        for (const item of orderItems) {
+            const productId = item.product._ref;
+            
+            console.log(`Marking product ${productId} as out of stock`);
+            
+            // Simply set inStock to false for each purchased product
+            try {
+                await backendClient
+                    .patch(productId)
+                    .set({ inStock: false })
+                    .commit();
+                    
+                console.log(`✅ Successfully marked ${productId} as out of stock`);
+            } catch (error) {
+                console.error(`⚠️ Error updating product ${productId}:`, error);
+                // Continue with other products even if this one fails
+            }
+        }
+        
+        console.log('✅ All products updated successfully');
+    } catch (error) {
+        console.error('🔴 Error updating inventory:', error);
+        // We don't throw the error to avoid failing the order creation
+    }
 }

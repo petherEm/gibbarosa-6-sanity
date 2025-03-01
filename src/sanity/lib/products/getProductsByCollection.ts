@@ -9,7 +9,7 @@ export const getProductsByCollection = async (collectionSlug: string) => {
       pricing,
       slug,
       images,
-      stock,
+      inStock,
       isFeatured,
       "brands": brands[]-> {
         _id,

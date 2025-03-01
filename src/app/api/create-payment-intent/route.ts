@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       );
     }
 
-    // Create the payment intent
+    // Create the payment intent with enhanced metadata
     const paymentIntent = await stripe.paymentIntents.create({
       amount: amount,
       currency: currency || 'eur',
@@ -53,14 +53,15 @@ export async function POST(req: Request) {
         firstName: shipping?.firstName,
         lastName: shipping?.lastName,
         email: shipping?.email,
-        // Store order items data in metadata (truncate if too large)
+        shippingMethod: shipping?.shippingMethod || 'standard',
+        notes: shipping?.notes || '',
+        // Store order items data in metadata
         orderItems: JSON.stringify(items?.map((item) => ({
           productId: item.productId,
           name: item.name,
           price: item.price,
           quantity: item.quantity
         })) || []).slice(0, 499), // Stripe metadata has a 500 character limit per field
-        shippingMethod: shipping?.shippingMethod || 'standard',
       },
       shipping: shipping ? {
         name: `${shipping.firstName} ${shipping.lastName}`,
