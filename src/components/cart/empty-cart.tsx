@@ -20,7 +20,7 @@ export function EmptyCart({ lang = "en" }: EmptyCartProps) {
         <div className="space-y-4">
           <h2 className="text-2xl font-bold">Your cart is empty</h2>
           <p className="text-muted-foreground">
-            Looks like you haven't added any products to your cart yet.
+            Looks like you haven&apos;t added any products to your cart yet.
           </p>
           <Button asChild className="mt-4">
             <Link href={`/${lang}`}>Continue Shopping</Link>
