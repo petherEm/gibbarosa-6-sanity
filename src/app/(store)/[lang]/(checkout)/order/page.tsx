@@ -132,8 +132,9 @@ export default function OrderSuccessPage() {
                   Development Mode
                 </h3>
                 <p className="text-sm text-yellow-700 mb-4">
-                  Since you're in local development, the webhook might not have
-                  triggered. Click below to manually create the order in Sanity.
+                  Since you&apos;re in local development, the webhook might not
+                  have triggered. Click below to manually create the order in
+                  Sanity.
                 </p>
                 <Button
                   onClick={createOrder}
