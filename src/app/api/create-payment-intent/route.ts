@@ -15,38 +15,85 @@ export async function POST(req: Request) {
 
   try {
     const body = await req.json();
-    const { amount, shipping } = body;
+    
+    // Extract necessary data from the request body
+    const { items, shipping, currency, totalAmount } = body;
+    
+    // Log the incoming data for debugging
+    console.log("Creating payment intent with:", { 
+      itemCount: items?.length || 0,
+      totalAmount,
+      currency,
+      shipping: shipping ? `${shipping.firstName} ${shipping.lastName}` : 'Missing shipping info'
+    });
 
+    // Generate a unique order number
+    const orderNumber = `ORD-${Date.now().toString().slice(-6)}-${Math.floor(Math.random() * 1000)}`;
+
+    // Calculate the amount in smallest currency unit (cents)
+    const amount = Math.round(totalAmount * 100);
+
+    if (!amount || amount <= 0) {
+      console.error("Invalid amount:", totalAmount);
+      return NextResponse.json(
+        { error: "Invalid payment amount" },
+        { status: 400 }
+      );
+    }
+
+    // Create the payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: Math.round(amount * 100),
-      currency: "eur",
+      amount: amount,
+      currency: currency || 'eur',
       automatic_payment_methods: {
         enabled: true,
       },
       metadata: {
-        firstName: shipping.firstName,
-        lastName: shipping.lastName,
-        email: shipping.email,
+        orderNumber,
+        firstName: shipping?.firstName,
+        lastName: shipping?.lastName,
+        email: shipping?.email,
+        // Store order items data in metadata (truncate if too large)
+        orderItems: JSON.stringify(items?.map((item) => ({
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          quantity: item.quantity
+        })) || []).slice(0, 499), // Stripe metadata has a 500 character limit per field
+        shippingMethod: shipping?.shippingMethod || 'standard',
       },
-      shipping: {
+      shipping: shipping ? {
         name: `${shipping.firstName} ${shipping.lastName}`,
         address: {
           line1: shipping.address,
           line2: shipping.apartment || "",
           city: shipping.city,
-          state: shipping.state,
+          state: shipping.state || "",
           postal_code: shipping.postalCode,
           country: shipping.country,
         },
         phone: shipping.phone,
-      },
+      } : undefined,
+      description: `Order ${orderNumber} with ${items?.length || 0} item(s)`,
     });
 
-    return NextResponse.json({ clientSecret: paymentIntent.client_secret });
-  } catch (error) {
+    console.log("Payment intent created successfully:", paymentIntent.id);
+
+    return NextResponse.json({ 
+      clientSecret: paymentIntent.client_secret,
+      paymentIntentId: paymentIntent.id,
+      orderNumber
+    });
+  } catch (error: any) {
     console.error("Error creating payment intent:", error);
+    
     return NextResponse.json(
-      { error: "Error creating payment intent" },
+      { 
+        error: "Error creating payment intent", 
+        message: error.message,
+        code: error.code,
+        type: error.type
+      },
       { status: 500 }
     );
   }

@@ -1,65 +1,70 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import useCartStore from "@/store/store";
+import { motion } from "framer-motion";
+import { ShoppingCart, CreditCard } from "lucide-react";
 
 interface CartSummaryProps {
-  isLoading: boolean;
+  isLoading?: boolean;
   onCheckout: () => void;
   itemCount: number;
+  totalPrice: number;
+  currency: string;
+  lang: string;
 }
 
 export function CartSummary({
-  isLoading,
+  isLoading = false,
   onCheckout,
   itemCount,
+  totalPrice,
+  currency = "€",
+  lang = "en",
 }: CartSummaryProps) {
-  const totalPrice = useCartStore.getState().getTotalPrice();
-
   return (
     <motion.div
-      layout
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="w-full lg:w-80 lg:sticky lg:top-4"
+      transition={{ delay: 0.2 }}
+      className="w-full lg:w-96 bg-gray-50 p-6 rounded-lg space-y-6 sticky top-24 h-fit lg:min-w-72"
     >
-      <Card>
-        <CardHeader>
-          <CardTitle>Order Summary</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex justify-between">
-              <span>Items</span>
-              <span>{itemCount}</span>
-            </div>
-            <Separator />
-            <div className="flex justify-between text-lg font-semibold">
-              <span>Total</span>
-              <span>EUR {totalPrice.toFixed(2)}</span>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button
-            className="w-full"
-            size="lg"
-            disabled={isLoading}
-            onClick={onCheckout}
-          >
-            {isLoading ? "Processing..." : "Checkout"}
-          </Button>
-        </CardFooter>
-      </Card>
+      <h2 className="font-bold text-lg">Order Summary</h2>
+      <div className="space-y-3">
+        <div className="flex justify-between">
+          <span>Items ({itemCount})</span>
+          <span>
+            {currency} {totalPrice.toFixed(2)}
+          </span>
+        </div>
+        <div className="flex justify-between text-muted-foreground">
+          <span>Shipping</span>
+          <span>Calculated at checkout</span>
+        </div>
+      </div>
+      <div className="border-t border-gray-200 pt-3">
+        <div className="flex justify-between font-bold">
+          <span>Total</span>
+          <span>
+            {currency} {totalPrice.toFixed(2)}
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground mt-1">
+          Taxes included. Shipping calculated at checkout.
+        </p>
+      </div>
+      <Button className="w-full" onClick={onCheckout} disabled={isLoading}>
+        {isLoading ? (
+          "Processing..."
+        ) : (
+          <>
+            <CreditCard className="h-4 w-4 mr-2" /> Checkout
+          </>
+        )}
+      </Button>
+      <p className="text-xs text-center text-muted-foreground mt-4">
+        We offer free shipping on all European orders. Delivery time is
+        typically 3-5 business days.
+      </p>
     </motion.div>
   );
 }

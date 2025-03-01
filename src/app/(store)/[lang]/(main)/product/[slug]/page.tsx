@@ -21,25 +21,31 @@ import BuyNowButton from "@/components/BuyNowButton";
 export const dynamic = "force-static";
 export const revalidate = 3600; // 1 hour
 
-const getDescriptionByLang = (product: any, lang: string) => {
-  switch (lang) {
-    case "pl":
-      return product.PLdescription;
-    case "fr":
-      return product.FRdescription;
-    case "en":
-      return product.ENdescription;
-    default:
-      return product.ENdescription;
-  }
+// Helper function to get language-specific content
+const getContentByLang = (obj: any, lang: string, fallbackLang = "EN") => {
+  if (!obj) return null;
+
+  const langKey = lang.toUpperCase();
+  return obj[langKey] || obj[fallbackLang] || null;
 };
 
-const getPriceByLang = (product: Product, lang: string) => {
+// Helper function to get price and currency based on language
+const getPriceByLang = (product: any, lang: string) => {
+  if (!product || !product.pricing) return { price: 0, currency: "EUR" };
+
   switch (lang) {
     case "pl":
-      return { price: product.plnprice, currency: "PLN" };
+      return {
+        price: product.pricing.PLN || 0,
+        currency: "PLN",
+        estimatedRetailPrice: product.pricing.PLNestimatedRetailPrice,
+      };
     default:
-      return { price: product.eurprice, currency: "EUR" };
+      return {
+        price: product.pricing.EUR || 0,
+        currency: "EUR",
+        estimatedRetailPrice: product.pricing.EURestimatedRetailPrice,
+      };
   }
 };
 
@@ -57,8 +63,25 @@ const ProductPage = async ({
   }
 
   const isOutOfStock = product.stock != null && product.stock <= 0;
-  const description = getDescriptionByLang(product, lang);
-  const { price, currency } = getPriceByLang(product, lang);
+
+  // Get localized content
+  const productName = getContentByLang(product.name, lang);
+  const shortDescription = getContentByLang(product.shortDescription, lang);
+  const longDescription = getContentByLang(product.longDescription, lang);
+  const color = getContentByLang(product.color, lang);
+  const material = getContentByLang(product.material, lang);
+  const accessories = getContentByLang(product.accessories, lang);
+
+  // Get pricing
+  const { price, currency, estimatedRetailPrice } = getPriceByLang(
+    product,
+    lang
+  );
+
+  // Get condition
+  const conditionTitle = product.condition?.title
+    ? getContentByLang(product.condition.title, lang)
+    : null;
 
   return (
     <Container className="py-8">
@@ -68,14 +91,18 @@ const ProductPage = async ({
           <div
             className={`relative aspect-square overflow-hidden max-w-[800px] ${isOutOfStock ? "opacity-50" : ""}`}
           >
-            {product.images && (
+            {product.images && product.images.length > 0 ? (
               <Image
                 src={urlFor(product.images[0]).url() || "/placeholder.svg"}
                 fill
-                alt={product.name ?? "Product Image"}
+                alt={productName || "Product Image"}
                 className="object-contain transition-transform duration-300 hover:scale-105"
                 priority
               />
+            ) : (
+              <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                <span className="text-gray-400">No Image Available</span>
+              </div>
             )}
 
             {isOutOfStock && (
@@ -96,7 +123,7 @@ const ProductPage = async ({
                   <Image
                     src={urlFor(image).url() || "/placeholder.svg"}
                     fill
-                    alt={`${product.name} - Image ${index + 2}`}
+                    alt={`${productName || "Product"} - Image ${index + 2}`}
                     className="object-contain"
                   />
                 </div>
@@ -110,20 +137,22 @@ const ProductPage = async ({
           <div className="space-y-4">
             <div>
               <p className="text-sm font-medium text-muted-foreground">
-                Brand name
+                {product.brands
+                  ?.map(
+                    (brand) => getContentByLang(brand.title, lang) || "Brand"
+                  )
+                  .join(", ")}
               </p>
-              <h1 className="text-3xl font-bold">{product.name}</h1>
+              <h1 className="text-3xl font-bold">{productName || "Product"}</h1>
             </div>
 
             <div className="text-2xl font-semibold">
               {currency} {price?.toFixed(2)}
             </div>
 
-            <p className="text-muted-foreground">
-              Lorem ipsum dolor sit, amet consectetur adipisicing elit.
-              Exercitationem explicabo omnis, doloremque nam dolor optio iste
-              sapiente rerum aut voluptatem.
-            </p>
+            <div className="text-muted-foreground">
+              {shortDescription && <PortableText value={shortDescription} />}
+            </div>
           </div>
 
           <div className="flex flex-col gap-4">
@@ -148,54 +177,88 @@ const ProductPage = async ({
 
           <Separator />
 
+          {/* Product Details Table */}
           <Table className="[&_tr]:border-0">
             <TableBody className="[&_td]:p-2 [&_td]:border-0">
-              <TableRow>
-                <TableCell className="font-medium">House</TableCell>
-                <TableCell>Dior</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Condition</TableCell>
-                <TableCell>Very Good</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Color</TableCell>
-                <TableCell>Navy Blue</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Creative Director</TableCell>
-                <TableCell>John Galliano</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Production Year</TableCell>
-                <TableCell>2013</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Material</TableCell>
-                <TableCell>Cotton</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Size</TableCell>
-                <TableCell>XS</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Dimensions</TableCell>
-                <TableCell>20 x 24 x 13 cm</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Accessories</TableCell>
-                <TableCell>Dust bag, authenticity certificate, box</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">Serial Number</TableCell>
-                <TableCell>2142430238232411</TableCell>
-              </TableRow>
-              <TableRow>
-                <TableCell className="font-medium">
-                  Estimated Retail Price
-                </TableCell>
-                <TableCell>15,000,000 PLN</TableCell>
-              </TableRow>
+              {product.brands && product.brands.length > 0 && (
+                <TableRow>
+                  <TableCell className="font-medium">House</TableCell>
+                  <TableCell>
+                    {product.brands
+                      ?.map(
+                        (brand) =>
+                          getContentByLang(brand.title, lang) || "Brand"
+                      )
+                      .join(", ")}
+                  </TableCell>
+                </TableRow>
+              )}
+              {conditionTitle && (
+                <TableRow>
+                  <TableCell className="font-medium">Condition</TableCell>
+                  <TableCell>{conditionTitle}</TableCell>
+                </TableRow>
+              )}
+              {color && (
+                <TableRow>
+                  <TableCell className="font-medium">Color</TableCell>
+                  <TableCell>{color}</TableCell>
+                </TableRow>
+              )}
+              {product.creativeDirector && (
+                <TableRow>
+                  <TableCell className="font-medium">
+                    Creative Director
+                  </TableCell>
+                  <TableCell>{product.creativeDirector}</TableCell>
+                </TableRow>
+              )}
+              {product.productionYear && (
+                <TableRow>
+                  <TableCell className="font-medium">Production Year</TableCell>
+                  <TableCell>{product.productionYear}</TableCell>
+                </TableRow>
+              )}
+              {material && (
+                <TableRow>
+                  <TableCell className="font-medium">Material</TableCell>
+                  <TableCell>{material}</TableCell>
+                </TableRow>
+              )}
+              {product.size && (
+                <TableRow>
+                  <TableCell className="font-medium">Size</TableCell>
+                  <TableCell>{product.size}</TableCell>
+                </TableRow>
+              )}
+              {product.dimensions && (
+                <TableRow>
+                  <TableCell className="font-medium">Dimensions</TableCell>
+                  <TableCell>{product.dimensions}</TableCell>
+                </TableRow>
+              )}
+              {accessories && (
+                <TableRow>
+                  <TableCell className="font-medium">Accessories</TableCell>
+                  <TableCell>{accessories}</TableCell>
+                </TableRow>
+              )}
+              {product.serialNumber && (
+                <TableRow>
+                  <TableCell className="font-medium">Serial Number</TableCell>
+                  <TableCell>{product.serialNumber}</TableCell>
+                </TableRow>
+              )}
+              {estimatedRetailPrice && (
+                <TableRow>
+                  <TableCell className="font-medium">
+                    Estimated Retail Price
+                  </TableCell>
+                  <TableCell>
+                    {currency} {estimatedRetailPrice.toLocaleString()}
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
 
@@ -203,7 +266,7 @@ const ProductPage = async ({
 
           {/* Product Description */}
           <div className="prose max-w-none">
-            {Array.isArray(description) && <PortableText value={description} />}
+            {longDescription && <PortableText value={longDescription} />}
           </div>
 
           {/* Accordion Sections */}

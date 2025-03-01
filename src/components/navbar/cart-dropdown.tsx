@@ -12,10 +12,44 @@ import { Separator } from "@/components/ui/separator";
 import useCartStore from "@/store/store";
 import { urlFor } from "@/sanity/lib/image";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
+
+// Helper function to get language-specific content
+const getNameByLang = (product, lang) => {
+  if (!product?.name) return "Product";
+
+  const langKey = lang.toUpperCase();
+  return product.name[langKey] || product.name.EN || "Product";
+};
+
+// Helper function to get price based on language
+const getPriceByLang = (product, lang) => {
+  if (!product?.pricing) return { price: 0, currency: "€" };
+
+  switch (lang) {
+    case "pl":
+      return {
+        price: parseFloat(product.pricing.PLN || 0),
+        currency: "PLN",
+      };
+    default:
+      return {
+        price: parseFloat(product.pricing.EUR || 0),
+        currency: "€",
+      };
+  }
+};
 
 export default function CartDropdown() {
+  const pathname = usePathname();
+  // Extract language from pathname (e.g., "/en/product/...")
+  const lang = pathname.split("/")[1] || "en";
+
   const itemCount = useCartStore((state) =>
-    state.items.reduce((total, item) => total + item.quantity, 0)
+    state.items.reduce(
+      (total, item) => total + (parseInt(item.quantity) || 0),
+      0
+    )
   );
   const cartItems = useCartStore((state) => state.items);
   const getTotalPrice = useCartStore((state) => state.getTotalPrice);
@@ -67,44 +101,55 @@ export default function CartDropdown() {
             </div>
           ) : (
             <div className="space-y-1 py-2">
-              {cartItems.map((item) => (
-                <div
-                  key={item.product._id}
-                  className="group relative flex items-center gap-4 rounded-lg p-3 hover:bg-accent"
-                >
-                  <div className="relative h-16 w-16 overflow-hidden">
-                    <Image
-                      className="object-cover transition-transform duration-300 group-hover:scale-105"
-                      src={
-                        item.product.images
-                          ? urlFor(item.product.images[0]).url()
-                          : ""
-                      }
-                      alt={item.product.name ?? "Product Image"}
-                      fill
-                      sizes="64px"
-                    />
-                  </div>
-                  <div className="flex flex-1 flex-col gap-1">
-                    <span className="line-clamp-1 font-medium">
-                      {item.product.name}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">
-                        €{(item.product.eurprice * item.quantity).toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="absolute right-2 top-2 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
-                    onClick={() => removeFromCart(item.product._id)}
+              {cartItems.map((item) => {
+                const productName = getNameByLang(item.product, lang);
+                const { price, currency } = getPriceByLang(item.product, lang);
+                const quantity = parseInt(item.quantity) || 0;
+                const totalItemPrice = price * quantity;
+
+                return (
+                  <div
+                    key={item.product._id}
+                    className="group relative flex items-center gap-4 rounded-lg p-3 hover:bg-accent"
                   >
-                    <Trash2 className="h-3 w-3" />
-                  </Button>
-                </div>
-              ))}
+                    <div className="relative h-16 w-16 overflow-hidden">
+                      <Image
+                        className="object-cover transition-transform duration-300 group-hover:scale-105"
+                        src={
+                          item.product.images && item.product.images.length > 0
+                            ? urlFor(item.product.images[0]).url()
+                            : "/placeholder.svg"
+                        }
+                        alt={productName}
+                        fill
+                        sizes="64px"
+                      />
+                    </div>
+                    <div className="flex flex-1 flex-col gap-1">
+                      <span className="line-clamp-1 font-medium">
+                        {productName}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-muted-foreground">
+                          Qty: {quantity}
+                        </span>
+                        <span className="font-medium">
+                          {currency}
+                          {totalItemPrice.toFixed(2)}
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute right-2 top-2 h-6 w-6 opacity-0 transition-opacity group-hover:opacity-100"
+                      onClick={() => removeFromCart(item.product._id)}
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </Button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>
@@ -115,19 +160,25 @@ export default function CartDropdown() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>€{getTotalPrice().toFixed(2)}</span>
+                  <span>
+                    {lang === "pl" ? "PLN" : "€"}
+                    {getTotalPrice(lang).toFixed(2)}
+                  </span>
                 </div>
                 <div className="flex items-center justify-between font-medium">
                   <span>Total</span>
-                  <span>€{getTotalPrice().toFixed(2)}</span>
+                  <span>
+                    {lang === "pl" ? "PLN" : "€"}
+                    {getTotalPrice(lang).toFixed(2)}
+                  </span>
                 </div>
               </div>
               <div className="flex flex-col gap-2">
                 <Button asChild className="w-full">
-                  <Link href="/checkout">Checkout</Link>
+                  <Link href={`/${lang}/checkout`}>Checkout</Link>
                 </Button>
                 <Button asChild variant="outline" className="w-full">
-                  <Link href="/cart">View Cart</Link>
+                  <Link href={`/${lang}/cart`}>View Cart</Link>
                 </Button>
               </div>
             </div>

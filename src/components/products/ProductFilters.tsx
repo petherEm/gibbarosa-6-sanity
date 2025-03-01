@@ -19,6 +19,8 @@ interface ProductFiltersProps {
   brands: Brand[];
   onFilterChange: (filters: FilterState) => void;
   maxPrice: number;
+  currency?: string;
+  lang?: string;
 }
 
 export interface FilterState {
@@ -34,13 +36,37 @@ export function ProductFilters({
   brands,
   onFilterChange,
   maxPrice,
+  currency = "€",
+  lang = "EN",
 }: ProductFiltersProps) {
   const [filters, setFilters] = useState<FilterState>({
     category: "",
     collection: "",
     brand: "",
-    priceRange: [0, maxPrice],
+    priceRange: [0, maxPrice || 10000],
   });
+
+  // Helper function to get localized text based on language
+  const getLocalizedText = (obj: any, fallback: string = "Untitled") => {
+    if (!obj) return fallback;
+
+    const langKey = lang.toUpperCase();
+
+    // For flattened objects (getXXXForLanguage)
+    if (typeof obj === "string") return obj;
+
+    // For full multilingual objects
+    if (obj.title) {
+      return obj.title[langKey] || obj.title.EN || fallback;
+    }
+
+    // For brand objects that might use name instead of title
+    if (obj.name) {
+      return obj.name[langKey] || obj.name.EN || fallback;
+    }
+
+    return fallback;
+  };
 
   const handleFilterChange = (newFilters: Partial<FilterState>) => {
     const updatedFilters = { ...filters, ...newFilters };
@@ -53,7 +79,7 @@ export function ProductFilters({
       category: "",
       collection: "",
       brand: "",
-      priceRange: [0, maxPrice],
+      priceRange: [0, maxPrice || 10000],
     };
     setFilters(resetFilters);
     onFilterChange(resetFilters);
@@ -72,9 +98,9 @@ export function ProductFilters({
               <SelectValue placeholder="Filter by category" />
             </SelectTrigger>
             <SelectContent>
-              {categories.map((category) => (
+              {categories?.map((category) => (
                 <SelectItem key={category._id} value={category._id}>
-                  {category.title}
+                  {getLocalizedText(category, "Category")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -91,9 +117,9 @@ export function ProductFilters({
               <SelectValue placeholder="Filter by collection" />
             </SelectTrigger>
             <SelectContent>
-              {collections.map((collection) => (
+              {collections?.map((collection) => (
                 <SelectItem key={collection._id} value={collection._id}>
-                  {collection.EN_title}
+                  {getLocalizedText(collection, "Collection")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -112,7 +138,7 @@ export function ProductFilters({
             <SelectContent>
               {brands?.map((brand) => (
                 <SelectItem key={brand._id} value={brand._id}>
-                  {brand.name}
+                  {getLocalizedText(brand, "Brand")}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -132,17 +158,18 @@ export function ProductFilters({
         )}
       </div>
 
-      {/* Price Range Slider - remains unchanged */}
+      {/* Price Range Slider */}
       <div className="space-y-2 max-w-[300px]">
         <div className="flex justify-between text-sm">
           <span>Price range</span>
           <span>
-            €{filters.priceRange[0]} - €{filters.priceRange[1]}
+            {currency} {filters.priceRange[0]} - {currency}{" "}
+            {filters.priceRange[1]}
           </span>
         </div>
         <Slider
           min={0}
-          max={maxPrice}
+          max={maxPrice || 10000}
           step={50}
           value={filters.priceRange}
           onValueChange={(value) =>

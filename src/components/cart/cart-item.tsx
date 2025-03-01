@@ -1,79 +1,122 @@
 "use client";
 
+import { useState } from "react";
 import Image from "next/image";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { urlFor } from "@/sanity/lib/image";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import useCartStore from "@/store/store";
+import { urlFor } from "@/sanity/lib/image";
 
 interface CartItemProps {
   product: any;
   quantity: number;
+  lang: string;
 }
 
-export function CartItem({ product, quantity }: CartItemProps) {
-  const router = useRouter();
-  const removeFromCart = useCartStore((state) => state.removeItem);
-  const addToCart = useCartStore((state) => state.addItem);
+// Helper function to get language-specific content
+const getNameByLang = (product, lang) => {
+  if (!product?.name) return "Product";
+
+  const langKey = lang.toUpperCase();
+  return product.name[langKey] || product.name.EN || "Product";
+};
+
+// Helper function to get price based on language
+const getPriceByLang = (product, lang) => {
+  if (!product?.pricing) return { price: 0, currency: "€" };
+
+  switch (lang) {
+    case "pl":
+      return {
+        price: Number(product.pricing.PLN || 0),
+        currency: "PLN",
+      };
+    default:
+      return {
+        price: Number(product.pricing.EUR || 0),
+        currency: "€",
+      };
+  }
+};
+
+export function CartItem({ product, quantity, lang }: CartItemProps) {
+  const [isDeleting, setIsDeleting] = useState(false);
+  const removeItem = useCartStore((state) => state.removeItem);
+
+  // Get product name in correct language
+  const productName = getNameByLang(product, lang);
+
+  // Get price and currency in correct language
+  const { price, currency } = getPriceByLang(product, lang);
+
+  const handleRemove = () => {
+    setIsDeleting(true);
+    setTimeout(() => {
+      removeItem(product._id);
+    }, 300);
+  };
+
+  // Get brand name if available
+  const brandName =
+    product.brands && product.brands.length > 0
+      ? product.brands[0].title?.[lang.toUpperCase()] ||
+        product.brands[0].title?.EN ||
+        product.brands[0].name ||
+        ""
+      : "";
 
   return (
     <motion.div
       layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
+      initial={{ opacity: 0, height: 0 }}
+      animate={{ opacity: 1, height: "auto" }}
+      exit={{ opacity: 0, height: 0 }}
+      transition={{ duration: 0.3 }}
+      className={`border-b py-5 ${isDeleting ? "opacity-50" : ""}`}
     >
-      <Card className="p-4 mb-4 rounded-none  border-b-2 shadow-none">
-        <div className="flex items-center gap-4">
-          <div
-            className="cursor-pointer"
-            onClick={() => router.push(`/product/${product.slug?.current}`)}
-          >
-            {product.images && (
-              <Image
-                src={urlFor(product.images[0]).url() || "/placeholder.svg"}
-                alt={product.name ?? "Product Image"}
-                className="object-cover"
-                width={120}
-                height={120}
-              />
-            )}
-          </div>
-
-          <div className="flex-1 min-w-0">
-            <h3
-              className="text-lg font-semibold truncate cursor-pointer hover:text-primary"
-              onClick={() => router.push(`/product/${product.slug?.current}`)}
-            >
-              {product.name}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              EUR {product.eurprice?.toFixed(2)}
-            </p>
-          </div>
-
-          <div className="text-right">
-            <p className="font-semibold">
-              EUR {(product.eurprice * quantity).toFixed(2)}
-            </p>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive hover:text-destructive mt-2"
-              onClick={() => {
-                for (let i = 0; i < quantity; i++) {
-                  removeFromCart(product._id);
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+      <div className="flex items-center gap-4">
+        <div className="relative h-24 w-24 overflow-hidden rounded-md flex-shrink-0">
+          <Link href={`/${lang}/product/${product.slug.current}`}>
+            <Image
+              src={
+                product.images && product.images.length > 0
+                  ? urlFor(product.images[0]).url()
+                  : "/placeholder.svg"
+              }
+              alt={productName}
+              fill
+              className="object-cover"
+            />
+          </Link>
+        </div>
+        <div className="flex-grow space-y-1">
+          {brandName && (
+            <p className="text-sm text-muted-foreground">{brandName}</p>
+          )}
+          <Link href={`/${lang}/product/${product.slug.current}`}>
+            <h3 className="font-medium hover:underline">{productName}</h3>
+          </Link>
+          <div className="flex items-center gap-2 text-sm">
+            <span>Exclusive design</span>
           </div>
         </div>
-      </Card>
+        <div className="space-y-2 text-right min-w-24">
+          <div className="font-medium">
+            {currency} {price.toFixed(2)}
+          </div>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+            onClick={handleRemove}
+            disabled={isDeleting}
+          >
+            <Trash2 className="mr-2 h-4 w-4" /> Remove
+          </Button>
+        </div>
+      </div>
     </motion.div>
   );
 }

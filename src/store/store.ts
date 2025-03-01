@@ -8,58 +8,122 @@ export interface CartItem {
     quantity: number;
 }
 
-
-interface CartState {
+interface CartStore {
     items: CartItem[];
-    addItem: (product: Product) => void;
+    addItem: (product: Product, quantity: number) => void;
     removeItem: (productId: string) => void;
-    clearStore: () => void;
-    getTotalPrice: () => number;
-    getItemCount: (productId: string) => number;
-    getGroupedItems: () => CartItem[];
+    updateItemQuantity: (productId: string, quantity: number) => void;
+    clearCart: () => void;
+    getTotalPrice: (lang?: string) => number;
+    isProductInCart: (productId: string) => boolean;
 }
 
-const useCartStore = create<CartState>()(
+const useCartStore = create<CartStore>()(
     persist(
         (set, get) => ({
             items: [],
-            addItem: (product) => set((state) => {
-                const existingItem = state.items.find(item => item.product._id === product._id);
-                if (existingItem) {
-                   return {
-                    items: state.items.map(item => item.product._id === product._id ? { ...item, quantity: item.quantity + 1 } : item)
-                   }
+            addItem: (product, quantity) => {
+                // Console log to debug
+                console.log("Adding to cart:", {
+                    product: {
+                        _id: product._id,
+                        name: product.name,
+                        pricing: product.pricing
+                    },
+                    quantity
+                });
 
+                // Ensure quantity is a number
+                const safeQuantity = Number(quantity) || 1;
 
+                const currentItems = get().items;
+                const existingItemIndex = currentItems.findIndex(
+                    (item) => item.product._id === product._id
+                );
+
+                if (existingItemIndex >= 0) {
+                    // If item exists, update quantity
+                    const updatedItems = [...currentItems];
+                    const existingItem = updatedItems[existingItemIndex];
+                    const newQuantity = Number(existingItem.quantity) + safeQuantity;
+
+                    updatedItems[existingItemIndex] = {
+                        ...existingItem,
+                        quantity: newQuantity
+                    };
+
+                    set({ items: updatedItems });
+                    console.log("Updated existing item, new quantity:", newQuantity);
                 } else {
-                   return { items: [...state.items, { product, quantity: 1 }] }
+                    // If item doesn't exist, add it
+                    set({
+                        items: [...currentItems, {
+                            product,
+                            quantity: safeQuantity
+                        }]
+                    });
+                    console.log("Added new item with quantity:", safeQuantity);
                 }
-            }),
-            removeItem: (productId) => set((state) => ({
-                items: state.items.reduce((acc, item) => {
-                    if (item.product._id === productId) {
-                        if (item.quantity > 1) {
-                            acc.push({ ...item, quantity: item.quantity - 1 });
-                        }} else {
-                            acc.push(item);
-                        }
-                        return acc;
-                    }, [] as CartItem[])
-            })),
-            clearStore: () => set({ items: [] }),
-            getTotalPrice: () => {
-                return get().items.reduce((total, item) => total + (item.product.eurprice ?? 0) * item.quantity, 0);
             },
-            getItemCount: (productId) => {
-                const item = get().items.find(item => item.product._id === productId);
-                return item ? item.quantity  : 0;
+            removeItem: (productId) => {
+                console.log("Removing item:", productId);
+                set({
+                    items: get().items.filter((item) => item.product._id !== productId),
+                });
             },
-            getGroupedItems: () => {
-                return get().items;
-            }
+            updateItemQuantity: (productId, quantity) => {
+                // Ensure quantity is a number
+                const safeQuantity = Number(quantity) || 1;
+                console.log("Updating quantity for:", productId, "to:", safeQuantity);
+
+                set({
+                    items: get().items.map((item) =>
+                        item.product._id === productId
+                            ? { ...item, quantity: safeQuantity }
+                            : item
+                    ),
+                });
+            },
+            clearCart: () => {
+                console.log("Clearing cart");
+                set({ items: [] });
+            },
+            getTotalPrice: (lang = "en") => {
+                const total = get().items.reduce((sum, item) => {
+                    // Ensure we have valid pricing data
+                    if (!item.product || !item.product.pricing) {
+                        console.warn("Product or pricing missing:", item.product);
+                        return sum;
+                    }
+
+                    // Debug the price calculation
+                    const priceField = lang === "pl" ? "PLN" : "EUR";
+                    const rawPrice = item.product.pricing[priceField];
+                    const price = Number(rawPrice) || 0;
+                    const quantity = Number(item.quantity) || 0;
+                    const itemTotal = price * quantity;
+
+                    console.log("Price calculation:", {
+                        product: item.product._id,
+                        priceField,
+                        rawPrice,
+                        price,
+                        quantity,
+                        itemTotal
+                    });
+
+                    return sum + itemTotal;
+                }, 0);
+
+                console.log(`Total price (${lang}):`, total);
+                return total;
+            },
+            isProductInCart: (productId) => {
+                return get().items.some((item) => item.product._id === productId);
+            },
         }),
         {
-            name: "gibbarosa-store"
+            name: "cart-storage",
         }
     )
 );

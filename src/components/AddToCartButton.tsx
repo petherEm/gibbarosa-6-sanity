@@ -1,72 +1,84 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import type { Product } from "../../sanity.types";
-import useCartStore from "../store/store";
-import { Button } from "./ui/button";
-import { ShoppingCart } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { ShoppingBag, CheckCircle } from "lucide-react";
+import useCartStore from "@/store/store";
+import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 interface AddToCartButtonProps {
-  product: Product;
+  product: any;
   disabled?: boolean;
 }
 
-const AddToCartButton = ({ product, disabled }: AddToCartButtonProps) => {
-  const { addItem } = useCartStore();
-  const [isClient, setIsClient] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isAdded, setIsAdded] = useState(false);
+export default function AddToCartButton({
+  product,
+  disabled = false,
+}: AddToCartButtonProps) {
+  const [isAdding, setIsAdding] = useState(false);
+  const [message, setMessage] = useState("");
+  const addToCart = useCartStore((state) => state.addItem);
+  const cartItems = useCartStore((state) => state.items);
 
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
+  const pathname = usePathname();
+  const lang = pathname.split("/")[1] || "en";
 
-  const handleAddToCart = async () => {
-    setIsLoading(true);
-    // Simulate network request
-    await new Promise((resolve) => setTimeout(resolve, 500));
+  // Check if the product is already in the cart
+  const isInCart = cartItems.some((item) => item.product._id === product._id);
 
-    addItem(product);
+  const handleAddToCart = () => {
+    if (isInCart) {
+      setMessage("Already in cart");
+      setTimeout(() => {
+        setMessage("");
+      }, 2000);
+      return;
+    }
 
-    setIsLoading(false);
-    setIsAdded(true);
+    setIsAdding(true);
 
-    // Reset added state after animation
+    // Ensure product has all required fields
+    if (!product._id || !product.name || !product.pricing) {
+      console.error("Invalid product structure:", product);
+      setMessage("Error adding to cart");
+      setIsAdding(false);
+      return;
+    }
+
+    // Add to cart with quantity fixed at 1
+    addToCart(product, 1);
+
+    setMessage("Added to cart");
     setTimeout(() => {
-      setIsAdded(false);
-    }, 1500);
+      setMessage("");
+      setIsAdding(false);
+    }, 2000);
   };
 
-  if (!isClient) {
-    return null;
-  }
-
   return (
-    <div className="flex flex-col space-y-2">
-      <Button
-        onClick={handleAddToCart}
-        disabled={disabled || isLoading}
-        className={cn(
-          "w-full h-12 text-base transition-all duration-200 rounded-full",
-          isAdded && "bg-green-500 hover:bg-green-600"
-        )}
-      >
-        <ShoppingCart
-          className={cn(
-            "mr-2 h-5 w-5 transition-transform duration-200",
-            isAdded && "animate-bounce"
+    <div className="flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Button
+          className="flex-1"
+          disabled={disabled || isAdding || isInCart}
+          onClick={handleAddToCart}
+          variant={isInCart ? "outline" : "default"}
+        >
+          {isAdding ? (
+            message || "Adding..."
+          ) : disabled ? (
+            "Out of Stock"
+          ) : isInCart ? (
+            <>
+              <CheckCircle className="mr-2 h-4 w-4 text-green-500" /> In Cart
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="mr-2 h-4 w-4" /> Add to Cart
+            </>
           )}
-        />
-        {isLoading ? "Adding..." : isAdded ? "Added to cart!" : "Add to cart"}
-      </Button>
-      {disabled && (
-        <p className="text-sm text-muted-foreground text-center">
-          This item is currently out of stock
-        </p>
-      )}
+        </Button>
+      </div>
     </div>
   );
-};
-
-export default AddToCartButton;
+}

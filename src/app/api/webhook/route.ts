@@ -1,9 +1,9 @@
 import stripe from "@/lib/stripe";
-import { backendClient} from "@/sanity/lib/backendClient";
+import { backendClient } from "@/sanity/lib/backendClient";
 import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { Stripe } from "stripe";
-import { Metadata } from "../../../../actions/createCheckoutSession";
+import crypto from "crypto";
 
 export async function POST(req: NextRequest) {
     const isProduction = process.env.NODE_ENV === 'production';
@@ -30,13 +30,20 @@ export async function POST(req: NextRequest) {
             case 'checkout.session.completed':
                 const session = event.data.object as Stripe.Checkout.Session;
                 console.log('💳 Processing completed checkout:', session.id);
-                const order = await createOrderInSanity(session);
-                console.log('✅ Created Sanity order:', order._id);
+                const sessionOrder = await createOrderFromCheckoutSession(session);
+                console.log('✅ Created Sanity order from session:', sessionOrder._id);
                 break;
 
             case 'payment_intent.succeeded':
                 const paymentIntent = event.data.object as Stripe.PaymentIntent;
                 console.log('💰 Payment succeeded:', paymentIntent.id);
+                // Only create order if it's a direct PaymentIntent (not from Checkout)
+                if (!paymentIntent.metadata.checkout_session_id) {
+                    const piOrder = await createOrderFromPaymentIntent(paymentIntent);
+                    console.log('✅ Created Sanity order from payment intent:', piOrder._id);
+                } else {
+                    console.log('ℹ️ Skipping order creation - handled by checkout session');
+                }
                 break;
 
             default:
@@ -56,7 +63,7 @@ export async function POST(req: NextRequest) {
     }
 }
 
-async function createOrderInSanity(session: Stripe.Checkout.Session) {
+async function createOrderFromCheckoutSession(session: Stripe.Checkout.Session) {
     const {
         id,
         amount_total,
@@ -64,10 +71,15 @@ async function createOrderInSanity(session: Stripe.Checkout.Session) {
         metadata,
         payment_intent,
         customer,
-        total_details
+        total_details,
+        customer_details
     } = session;
 
-    const { orderNumber, customerName, customerEmail } = metadata as Metadata;
+    // Get order details from metadata or customer details
+    const orderNumber = metadata?.orderNumber || `order-${Date.now()}`;
+    const customerName = metadata?.customerName || 
+                        (customer_details ? `${customer_details.name || 'Unknown'}` : 'Unknown');
+    const customerEmail = metadata?.customerEmail || customer_details?.email || 'unknown@example.com';
 
     const lineItemsWithProduct = await stripe.checkout.sessions.listLineItems(
         id,
@@ -89,9 +101,9 @@ async function createOrderInSanity(session: Stripe.Checkout.Session) {
         _type: "order",
         orderNumber,
         stripeCheckoutSessionId: id,
-        stripePaymentIntentId: payment_intent,
+        stripePaymentIntentId: typeof payment_intent === 'string' ? payment_intent : undefined,
         customerName,
-        stripeCustomerId: customer,
+        stripeCustomerId: customer?.toString() || undefined,
         email: customerEmail,
         currency,
         amountDiscount: total_details?.amount_discount ? total_details.amount_discount / 100 : 0,
@@ -99,8 +111,66 @@ async function createOrderInSanity(session: Stripe.Checkout.Session) {
         totalPrice: amount_total ? amount_total / 100 : 0,
         status: "paid",
         orderDate: new Date().toISOString(),
-    })
+    });
 
     return order;
+}
 
+async function createOrderFromPaymentIntent(paymentIntent: Stripe.PaymentIntent) {
+    console.log('Creating order from payment intent:', paymentIntent.id);
+    
+    // Extract order items from metadata
+    let orderItems = [];
+    try {
+        // Parse the order items from metadata
+        const itemsJson = paymentIntent.metadata.orderItems;
+        if (itemsJson) {
+            const parsedItems = JSON.parse(itemsJson);
+            orderItems = parsedItems.map((item: any) => ({
+                _key: crypto.randomUUID(),
+                product: {
+                    _type: "reference",
+                    _ref: item.productId,
+                },
+                quantity: item.quantity || 1,
+            }));
+        }
+    } catch (error) {
+        console.error('Error parsing order items:', error);
+    }
+    
+    // Extract shipping information
+    const shippingInfo = paymentIntent.shipping;
+    
+    // Generate a unique order number if not provided
+    const orderNumber = paymentIntent.metadata.orderNumber || `PI-${Date.now()}-${paymentIntent.id.slice(-4)}`;
+    
+    // Create the order in Sanity
+    const order = await backendClient.create({
+        _type: "order",
+        orderNumber,
+        stripePaymentIntentId: paymentIntent.id,
+        stripeCustomerId: paymentIntent.customer?.toString() || undefined,
+        customerName: paymentIntent.metadata.firstName && paymentIntent.metadata.lastName ? 
+            `${paymentIntent.metadata.firstName} ${paymentIntent.metadata.lastName}` : 
+            (shippingInfo ? shippingInfo.name : 'Unknown'),
+        email: paymentIntent.metadata.email || 'unknown@example.com',
+        products: orderItems,
+        currency: paymentIntent.currency,
+        amountDiscount: 0, // No discount info in PaymentIntent
+        totalPrice: paymentIntent.amount / 100, // Convert from cents
+        status: "paid",
+        orderDate: new Date().toISOString(),
+        shippingAddress: shippingInfo ? {
+            address: shippingInfo.address.line1,
+            apartment: shippingInfo.address.line2 || undefined,
+            city: shippingInfo.address.city,
+            state: shippingInfo.address.state,
+            postalCode: shippingInfo.address.postal_code,
+            country: shippingInfo.address.country,
+            phone: shippingInfo.phone || undefined
+        } : undefined
+    });
+
+    return order;
 }

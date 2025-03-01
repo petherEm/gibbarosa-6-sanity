@@ -1,9 +1,9 @@
 import {TagIcon} from '@sanity/icons'
 import {defineField, defineType} from 'sanity'
 
-export const collectionType = defineType({
-  name: 'collection',
-  title: 'Collection',
+export const conditionType = defineType({
+  name: 'condition',
+  title: 'Condition',
   type: 'document',
   icon: TagIcon,
   fields: [
@@ -43,14 +43,6 @@ export const collectionType = defineType({
       validation: (Rule) => Rule.required(),
     }),
     defineField({
-      name: 'image',
-      title: 'Image',
-      type: 'image',
-      options: {
-        hotspot: true,
-      },
-    }),
-    defineField({
       name: 'description',
       title: 'Description',
       type: 'object',
@@ -77,14 +69,12 @@ export const collectionType = defineType({
     select: {
       title: 'title.EN',
       subtitle: 'description.EN',
-      media: 'image',
     },
     prepare(selection) {
-      const {title, subtitle, media} = selection
+      const {title, subtitle} = selection
       return {
-        title: title || 'Untitled Collection',
+        title: title || 'Untitled',
         subtitle: subtitle || '',
-        media,
       }
     },
   },
